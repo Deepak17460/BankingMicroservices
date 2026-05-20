@@ -1,5 +1,7 @@
 # Banking Microservices MVP
 
+**API documentation:** [api.md](./api.md)
+
 A .NET microservices banking demonstration (targets **.NET 10** and **.NET 8**) with in-memory storage, custom service discovery, centralized configuration, YARP API gateway, Polly resilience, Serilog logging, and global exception handling.
 
 ## Prerequisites
