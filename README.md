@@ -1,12 +1,54 @@
 # Banking Microservices MVP
 
-A .NET 8 microservices banking demonstration with in-memory storage, custom service discovery, centralized configuration, YARP API gateway, Polly resilience, Serilog logging, and global exception handling.
+A .NET microservices banking demonstration (targets **.NET 10** and **.NET 8**) with in-memory storage, custom service discovery, centralized configuration, YARP API gateway, Polly resilience, Serilog logging, and global exception handling.
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET SDK](https://dotnet.microsoft.com/download) **10.0** (recommended, e.g. `10.0.300`) or **8.0+**
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional, for containerized deployment)
 - [Git](https://git-scm.com/) (optional, for version control)
+
+This repo has **no `global.json` SDK pin**, so the newest installed SDK is used automatically.
+
+| Your installed SDK | Framework used |
+|--------------------|----------------|
+| .NET 10.x (e.g. 10.0.300) | `net10.0` (default) |
+| .NET 8.x only | `net8.0` |
+
+Check installed SDKs:
+
+```bash
+dotnet --list-sdks
+dotnet --version
+```
+
+## Troubleshooting
+
+### "A compatible .NET SDK was not found"
+
+Pull the latest code (this repo no longer ships a restrictive `global.json`). You need **.NET 8 or .NET 10 SDK** installed.
+
+### Wrong `dotnet run` command
+
+Do **not** use `dotnet run -BankingMicroservices`. Use `--project`:
+
+```bash
+cd BankingMicroservices
+dotnet run --project src/ServiceDiscovery/ServiceDiscovery.csproj
+```
+
+Build the solution:
+
+```bash
+dotnet build BankingMicroservices.sln
+```
+
+Force .NET 10 (matches Visual Studio 2026 / SDK 10.0.300):
+
+```bash
+dotnet build -f net10.0
+dotnet run -f net10.0 --project src/ServiceDiscovery/ServiceDiscovery.csproj
+```
 
 ## Git
 
@@ -77,20 +119,20 @@ Start infrastructure services first, then business services, then the gateway.
 ```bash
 cd BankingMicroservices
 
-# Terminal 1 - Service Discovery
-dotnet run --project src/ServiceDiscovery
+# Terminal 1 - Service Discovery (start first)
+dotnet run --project src/ServiceDiscovery/ServiceDiscovery.csproj
 
 # Terminal 2 - Configuration Service
-dotnet run --project src/ConfigurationService
+dotnet run --project src/ConfigurationService/ConfigurationService.csproj
 
 # Terminal 3 - Customer Management
-dotnet run --project src/CustomerManagementService
+dotnet run --project src/CustomerManagementService/CustomerManagementService.csproj
 
 # Terminal 4 - Account Management
-dotnet run --project src/AccountManagementService
+dotnet run --project src/AccountManagementService/AccountManagementService.csproj
 
 # Terminal 5 - API Gateway
-dotnet run --project src/ApiGateway
+dotnet run --project src/ApiGateway/ApiGateway.csproj
 ```
 
 Or build once:
@@ -224,6 +266,7 @@ BankingMicroservices/
 - **Service discovery** with registration, discovery, and 30-second stale cleanup
 - **Centralized configuration** fetched on startup per service
 - **Heartbeat** every 10 seconds from all services
+- **Multi-target** `net10.0` + `net8.0` via `Directory.Build.props`
 - **Polly** retry (3 attempts, 2s delay) and circuit breaker (5 failures, 30s break)
 - **Serilog** structured console logging
 - **Global exception middleware** returning RFC 7807 `ProblemDetails`

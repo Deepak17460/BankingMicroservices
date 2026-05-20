@@ -1,13 +1,13 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
 COPY ["src/CustomerManagementService/CustomerManagementService.csproj", "src/CustomerManagementService/"]
 RUN dotnet restore "src/CustomerManagementService/CustomerManagementService.csproj"
 COPY . .
 WORKDIR "/src/src/CustomerManagementService"
-RUN dotnet publish "CustomerManagementService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "CustomerManagementService.csproj" -c Release -f net10.0 -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 ENV ASPNETCORE_URLS=http://+:5001
