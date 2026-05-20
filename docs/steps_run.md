@@ -2,7 +2,7 @@
 
 Step-by-step instructions to install, build, run, and test the solution on **WSL (Ubuntu)** or **Windows**.
 
-**Related docs:** [README.md](../README.md) · [api.md](./api.md) · [Documentation index](./README.md)
+**Related docs:** [README.md](../README.md) · [docker.md](./docker.md) · [api.md](./api.md) · [Documentation index](./README.md)
 
 ---
 
@@ -278,19 +278,14 @@ GET http://localhost:5003/discover/account-management
 
 ## 8. Run with Docker (alternative)
 
-From `BankingMicroservices` folder:
+Use Docker Compose instead of five terminals. Full guide: **[docker.md](./docker.md)**
 
 ```bash
-docker-compose up --build
+docker compose up --build
+docker compose down
 ```
 
-Stop:
-
-```bash
-docker-compose down
-```
-
-Same ports: 5000–5004. Test with gateway: `http://localhost:5000/gateway/customers`
+Same ports: 5000–5004. Test: `http://localhost:5000/gateway/customers`
 
 ---
 

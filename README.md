@@ -6,7 +6,8 @@ A .NET microservices banking demo with in-memory storage, custom service discove
 
 | Guide | Link |
 |-------|------|
-| **Run & test** (WSL, Windows, Postman, Docker) | [docs/steps_run.md](docs/steps_run.md) |
+| **Run & test** (WSL, Windows, Postman) | [docs/steps_run.md](docs/steps_run.md) |
+| **Docker** (Compose, one command) | [docs/docker.md](docs/docker.md) |
 | **API reference** (all endpoints) | [docs/api.md](docs/api.md) |
 | **Docs index** | [docs/README.md](docs/README.md) |
 
@@ -29,10 +30,10 @@ dotnet run --project src/AccountManagementService/AccountManagementService.cspro
 dotnet run --project src/ApiGateway/ApiGateway.csproj                  # :5000
 ```
 
-**Or Docker:**
+**Or Docker** (see [docs/docker.md](docs/docker.md)):
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 **Smoke test** (gateway):
@@ -92,7 +93,8 @@ BankingMicroservices/
 ├── Directory.Build.props
 ├── docs/
 │   ├── README.md          # Documentation index
-│   ├── steps_run.md       # How to run & test
+│   ├── steps_run.md       # How to run & test (local)
+│   ├── docker.md          # Docker Compose guide
 │   └── api.md             # API reference
 ├── docker/
 │   ├── Dockerfile.api-gateway
