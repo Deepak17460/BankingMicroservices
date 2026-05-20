@@ -1,5 +1,7 @@
 # Banking Microservices — API Reference
 
+**See also:** [Run & test guide](./steps_run.md) · [Documentation index](./README.md) · [Project README](../README.md)
+
 All banking operations should go through the **API Gateway** when possible. Infrastructure endpoints (Service Discovery, Configuration) are called directly or by services at startup.
 
 **Base URLs (local development)**
