@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["src/Shared/Shared.csproj", "src/Shared/"]
+COPY ["src/ConfigurationService/ConfigurationService.csproj", "src/ConfigurationService/"]
+RUN dotnet restore "src/ConfigurationService/ConfigurationService.csproj"
+COPY . .
+WORKDIR "/src/src/ConfigurationService"
+RUN dotnet publish "ConfigurationService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENV ASPNETCORE_URLS=http://+:5004
+EXPOSE 5004
+ENTRYPOINT ["dotnet", "ConfigurationService.dll"]

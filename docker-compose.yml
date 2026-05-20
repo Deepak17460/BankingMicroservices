@@ -1,0 +1,79 @@
+services:
+  service-discovery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service-discovery
+    container_name: service-discovery
+    ports:
+      - "5003:5003"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
+      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
+      Bootstrap__ServiceUrl: http://service-discovery:5003
+
+  configuration-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.configuration
+    container_name: configuration-service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - service-discovery
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
+      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
+      Bootstrap__ServiceUrl: http://configuration-service:5004
+
+  customer-management:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.customer
+    container_name: customer-management
+    ports:
+      - "5001:5001"
+    depends_on:
+      - service-discovery
+      - configuration-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
+      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
+      Bootstrap__ServiceUrl: http://customer-management:5001
+
+  account-management:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.account
+    container_name: account-management
+    ports:
+      - "5002:5002"
+    depends_on:
+      - service-discovery
+      - configuration-service
+      - customer-management
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
+      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
+      Bootstrap__ServiceUrl: http://account-management:5002
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-gateway
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    depends_on:
+      - service-discovery
+      - configuration-service
+      - customer-management
+      - account-management
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
+      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
+      Bootstrap__ServiceUrl: http://api-gateway:5000

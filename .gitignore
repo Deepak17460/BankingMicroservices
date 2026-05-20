@@ -1,0 +1,83 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+out/
+publish/
+
+## Visual Studio / Rider / VS Code
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Test / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+
+## .NET tooling
+*.dotnetToolManifest.json
+.dotnet/
+
+## User-specific / secrets (never commit)
+*.env
+*.env.*
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+secrets.json
+**/appsettings.Development.local.json
+
+## OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Docker (local overrides only)
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+## Misc
+*.log
+*.tmp
+*.temp
+*.cache
+*.bak
+*.swp
+*~
+.ncrunch*
+_ReSharper*/
+[Tt]emp/
+[Tt]mp/

@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["src/Shared/Shared.csproj", "src/Shared/"]
+COPY ["src/ServiceDiscovery/ServiceDiscovery.csproj", "src/ServiceDiscovery/"]
+RUN dotnet restore "src/ServiceDiscovery/ServiceDiscovery.csproj"
+COPY . .
+WORKDIR "/src/src/ServiceDiscovery"
+RUN dotnet publish "ServiceDiscovery.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENV ASPNETCORE_URLS=http://+:5003
+EXPOSE 5003
+ENTRYPOINT ["dotnet", "ServiceDiscovery.dll"]
