@@ -49,21 +49,23 @@ dotnet --list-sdks
 
 ## 2. Get the project
 
-```bash
-cd "/mnt/c/Users/dekuma/OneDrive - ASSA ABLOY Group/Desktop/Microservices/BankingMicroservices"
-```
-
-Or clone from GitHub:
+Clone from GitHub (recommended):
 
 ```bash
 git clone <your-repo-url>
 cd BankingMicroservices
 ```
 
-**Performance:** Building on `/mnt/c/.../OneDrive` is slower. For faster builds, copy to WSL home:
+Or open an existing local clone:
 
 ```bash
-cp -r "/mnt/c/Users/.../BankingMicroservices" ~/BankingMicroservices
+cd path/to/BankingMicroservices
+```
+
+**WSL tip:** If the repo lives on the Windows drive (e.g. under `/mnt/c/...`), builds can be slow. Copy into the Linux home directory for better performance:
+
+```bash
+cp -r /mnt/c/path/to/BankingMicroservices ~/BankingMicroservices
 cd ~/BankingMicroservices
 ```
 
@@ -303,7 +305,7 @@ Same ports: 5000–5004. Test with gateway: `http://localhost:5000/gateway/custo
 | Deposit 404 / customer not found | Use valid `customerId` from create/list |
 | Insufficient balance | Deposit before withdraw |
 | Postman cannot connect | Use `http://localhost:5000` (not https); services in WSL |
-| Slow build on OneDrive | Copy project to `~/BankingMicroservices` |
+| Slow build on Windows mount (`/mnt/c/...`) | Copy project to `~/BankingMicroservices` in WSL |
 | `jq` not found | Use raw JSON or `python3 -m json.tool` |
 
 ---
