@@ -20,11 +20,28 @@ var serviceUrl = builder.Configuration["Bootstrap:ServiceUrl"]
     ?? Environment.GetEnvironmentVariable("SERVICE_URL")
     ?? "http://localhost:5002";
 
-using var bootstrapClient = new HttpClient();
-var configResponse = await bootstrapClient.GetAsync($"{configurationServiceUrl.TrimEnd('/')}/config/account-management");
-configResponse.EnsureSuccessStatusCode();
-var remoteConfig = await configResponse.Content.ReadFromJsonAsync<ServiceConfiguration>()
-    ?? new ServiceConfiguration(new Dictionary<string, string>());
+// Try to load remote configuration, fall back to defaults if not available
+ServiceConfiguration remoteConfig;
+try
+{
+    using var bootstrapClient = new HttpClient();
+    bootstrapClient.Timeout = TimeSpan.FromSeconds(5);
+    var configResponse = await bootstrapClient.GetAsync($"{configurationServiceUrl.TrimEnd('/')}/config/account-management");
+    if (configResponse.IsSuccessStatusCode)
+    {
+        remoteConfig = await configResponse.Content.ReadFromJsonAsync<ServiceConfiguration>()
+            ?? new ServiceConfiguration(new Dictionary<string, string>());
+    }
+    else
+    {
+        remoteConfig = new ServiceConfiguration(new Dictionary<string, string>());
+    }
+}
+catch
+{
+    // Configuration service not available, use defaults
+    remoteConfig = new ServiceConfiguration(new Dictionary<string, string>());
+}
 
 var settings = new AccountServiceSettings
 {

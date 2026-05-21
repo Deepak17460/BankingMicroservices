@@ -2,12 +2,14 @@
 
   <PropertyGroup>
     <RootNamespace>BankingMicroservices.ConfigurationService</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="6.0.5" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
