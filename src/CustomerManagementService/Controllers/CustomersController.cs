@@ -28,10 +28,7 @@ public class CustomersController : ControllerBase
         
         _logger.LogInformation("Customer created successfully with ID: {CustomerId}", customer.Id);
         
-        return CreatedAtAction(
-            nameof(GetByIdAsync), 
-            new { id = customer.Id }, 
-            ApiResponse<CustomerDto>.Ok(customer));
+        return Created($"/api/customers/{customer.Id}", ApiResponse<CustomerDto>.Ok(customer));
     }
 
     [HttpGet]

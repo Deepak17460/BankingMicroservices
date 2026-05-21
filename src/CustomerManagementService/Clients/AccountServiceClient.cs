@@ -23,14 +23,37 @@ public class AccountServiceClient
 
     public async Task CreateAccountAsync(Guid customerId, CancellationToken cancellationToken = default)
     {
-        var baseUrl = await _discoveryClient.DiscoverAsync(_settings.AccountServiceName, cancellationToken);
-        var client = _httpClientFactory.CreateClient("InterService");
-        var response = await client.PostAsJsonAsync(
-            $"{baseUrl}/api/accounts",
-            new CreateAccountRequest(customerId),
-            cancellationToken);
+        try
+        {
+            var baseUrl = await _discoveryClient.DiscoverAsync(_settings.AccountServiceName, cancellationToken);
+            var client = _httpClientFactory.CreateClient("InterService");
+            
+            var requestData = new CreateAccountRequest(customerId);
+            Console.WriteLine($"Sending account creation request: CustomerId={customerId}, URL={baseUrl}/api/accounts");
+            
+            var response = await client.PostAsJsonAsync(
+                $"{baseUrl}/api/accounts",
+                requestData,
+                cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                Console.WriteLine($"Account creation failed. Status: {response.StatusCode}, Content: {errorContent}");
+                throw new HttpRequestException(
+                    $"Account creation failed. Status: {response.StatusCode}, Content: {errorContent}");
+            }
+            
+            Console.WriteLine($"Account creation succeeded for customer: {customerId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception during account creation: {ex}");
+            throw new InvalidOperationException(
+                $"Failed to create account for customer {customerId}. " +
+                $"Ensure Account Management Service is running and registered with Service Discovery. " +
+                $"Error: {ex.Message}", ex);
+        }
     }
 
     public async Task DeleteAccountByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)

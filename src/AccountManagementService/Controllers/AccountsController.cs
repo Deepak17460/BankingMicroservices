@@ -22,6 +22,20 @@ public class AccountsController : ControllerBase
         [FromBody] CreateAccountRequest request, 
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Received account creation request. CustomerId: {CustomerId}", request?.CustomerId);
+        
+        if (request == null)
+        {
+            _logger.LogWarning("CreateAccountRequest is null");
+            return BadRequest(new { error = "Request body is required" });
+        }
+        
+        if (request.CustomerId == Guid.Empty)
+        {
+            _logger.LogWarning("CustomerId is empty or invalid");
+            return BadRequest(new { error = "Valid CustomerId is required" });
+        }
+        
         _logger.LogInformation("Creating account for customer: {CustomerId}", request.CustomerId);
         
         var account = await _accountService.CreateAccountAsync(request.CustomerId, cancellationToken);
@@ -29,10 +43,7 @@ public class AccountsController : ControllerBase
         _logger.LogInformation("Account created successfully with ID: {AccountId} for customer: {CustomerId}", 
             account.Id, account.CustomerId);
         
-        return CreatedAtAction(
-            nameof(GetByIdAsync), 
-            new { id = account.Id }, 
-            ApiResponse<AccountDto>.Ok(account));
+        return Created($"/api/accounts/{account.Id}", ApiResponse<AccountDto>.Ok(account));
     }
 
     [HttpPost("deposit")]
@@ -74,11 +85,19 @@ public class AccountsController : ControllerBase
     {
         _logger.LogInformation("Retrieving account with ID: {AccountId}", id);
         
-        var account = await _accountService.GetByIdAsync(id, cancellationToken);
-        
-        _logger.LogInformation("Account retrieved successfully: {AccountId}", account.Id);
-        
-        return Ok(ApiResponse<AccountWithCustomerDto>.Ok(account));
+        try
+        {
+            var account = await _accountService.GetByIdAsync(id, cancellationToken);
+            
+            _logger.LogInformation("Account retrieved successfully: {AccountId}", account.Id);
+            
+            return Ok(ApiResponse<AccountWithCustomerDto>.Ok(account));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve account with ID: {AccountId}. Error: {Error}", id, ex.Message);
+            throw;
+        }
     }
 
     [HttpDelete("customer/{customerId:guid}")]

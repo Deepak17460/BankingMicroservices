@@ -29,10 +29,33 @@ public class CustomerService : ICustomerService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _repository.AddAsync(customer, cancellationToken);
-        await _accountClient.CreateAccountAsync(customer.Id, cancellationToken);
+        try
+        {
+            // Create customer first
+            await _repository.AddAsync(customer, cancellationToken);
+            
+            // Create associated account
+            await _accountClient.CreateAccountAsync(customer.Id, cancellationToken);
 
-        return MapToDto(customer);
+            return MapToDto(customer);
+        }
+        catch (Exception ex)
+        {
+            // If account creation failed but customer was created, we should clean up
+            // In a real system, you'd use distributed transactions or sagas
+            try
+            {
+                await _repository.DeleteAsync(customer.Id, cancellationToken);
+            }
+            catch
+            {
+                // Ignore cleanup errors - log this in real system
+            }
+            
+            throw new InvalidOperationException(
+                $"Failed to create customer and associated account. " +
+                $"Please ensure all services are running. Error: {ex.Message}", ex);
+        }
     }
 
     public async Task<IReadOnlyList<CustomerDto>> GetAllAsync(CancellationToken cancellationToken = default)

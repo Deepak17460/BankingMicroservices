@@ -77,13 +77,66 @@ curl -s -X POST http://localhost:5000/gateway/accounts \
   -d '{"customerId":"<customer-id-from-above>"}'
 ```
 
-### **Swagger Documentation**
+## Swagger API Documentation
 
-Interactive API documentation available at:
-- **Customer Service**: http://localhost:5001/swagger
-- **Account Service**: http://localhost:5002/swagger  
-- **Service Discovery**: http://localhost:5003/swagger
-- **Configuration Service**: http://localhost:5004/swagger
+### **Interactive API Documentation URLs**
+
+Once services are running, access Swagger UI for interactive testing:
+
+| Service | URL | Features |
+|---------|-----|----------|
+| **Customer Management** | http://localhost:5001/swagger | Create, read, update, delete customers |
+| **Account Management** | http://localhost:5002/swagger | Create accounts, deposits, withdrawals, balance checks |
+| **Service Discovery** | http://localhost:5003/swagger | Service registration, service lookup |
+| **Configuration Service** | http://localhost:5004/swagger | Get configuration for each service |
+
+### **Using Swagger for Testing**
+
+1. **Start services** (locally or via Docker)
+2. **Open Swagger UI** in your browser using URLs above
+3. **Click "Try it out"** on any endpoint
+4. **Fill parameters** and click "Execute"
+5. **See real responses** from your services
+
+### **Example Testing Workflow**
+
+**Step 1: Create Customer** (Customer Service Swagger)
+```json
+POST /api/customers
+{
+  "name": "John Doe",
+  "email": "john@example.com", 
+  "phone": "555-1234",
+  "address": "123 Main St"
+}
+```
+
+**Step 2: Create Account** (Account Service Swagger)  
+```json
+POST /api/accounts
+{
+  "customerId": "<use-customer-id-from-step-1>"
+}
+```
+
+**Step 3: Make Deposit** (Account Service Swagger)
+```json
+POST /api/accounts/deposit  
+{
+  "customerId": "<customer-id>",
+  "amount": 1000.00
+}
+```
+
+### **Swagger Features**
+
+✅ **All endpoints** with HTTP methods and descriptions  
+✅ **Request/response schemas** with example values  
+✅ **Live API testing** with real service calls  
+✅ **Parameter validation** and error responses  
+✅ **Model documentation** for all DTOs  
+
+**Note:** Swagger UI is only available in **development environment** for security.
 
 ## Services & ports
 

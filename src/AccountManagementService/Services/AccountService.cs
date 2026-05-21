@@ -82,14 +82,23 @@ public class AccountService : IAccountService
             throw new AccountNotFoundException(id);
         }
 
-        var customer = await _customerClient.GetCustomerAsync(account.CustomerId, cancellationToken);
-        return new AccountWithCustomerDto(
-            account.Id,
-            account.CustomerId,
-            account.Balance,
-            account.AccountType,
-            account.CreatedAt,
-            customer);
+        try
+        {
+            var customer = await _customerClient.GetCustomerAsync(account.CustomerId, cancellationToken);
+            return new AccountWithCustomerDto(
+                account.Id,
+                account.CustomerId,
+                account.Balance,
+                account.AccountType,
+                account.CreatedAt,
+                customer);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Account found but failed to retrieve customer details for customer ID: {account.CustomerId}. " +
+                $"Error: {ex.Message}", ex);
+        }
     }
 
     public async Task DeleteByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)
