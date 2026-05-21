@@ -26,7 +26,8 @@ public class ServiceRegistrationHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RegisterAsync(stoppingToken);
+        // Initial registration with retries
+        await RegisterWithRetriesAsync(stoppingToken);
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -39,6 +40,41 @@ public class ServiceRegistrationHostedService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to send heartbeat for {ServiceName}", _serviceName);
+            }
+        }
+    }
+
+    private async Task RegisterWithRetriesAsync(CancellationToken cancellationToken)
+    {
+        const int maxRetries = 10;
+        const int delayMs = 5000; // 5 seconds
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await RegisterAsync(cancellationToken);
+                _logger.LogInformation("Successfully registered service {ServiceName} on attempt {Attempt}", _serviceName, attempt);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxRetries)
+            {
+                _logger.LogWarning("Failed to register service {ServiceName} (attempt {Attempt}/{MaxRetries}). Retrying in {DelayMs}ms... Error: {Error}", 
+                    _serviceName, attempt, maxRetries, delayMs, ex.Message);
+                
+                try
+                {
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return; // Service is shutting down
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to register service {ServiceName} after {MaxRetries} attempts", _serviceName, maxRetries);
+                throw;
             }
         }
     }

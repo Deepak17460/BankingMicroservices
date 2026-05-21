@@ -28,6 +28,12 @@ public static class BankingServiceCollectionExtensions
             var options = sp.GetRequiredService<ServiceDiscoveryOptions>();
             return new ConfigurationServiceClient(factory, options.ConfigurationServiceUrl);
         });
+        // Configure host options to not stop on background service exceptions
+        services.Configure<Microsoft.Extensions.Hosting.HostOptions>(opts => 
+        {
+            opts.BackgroundServiceExceptionBehavior = Microsoft.Extensions.Hosting.BackgroundServiceExceptionBehavior.Ignore;
+        });
+        
         services.AddHostedService<ServiceRegistrationHostedService>(sp =>
         {
             var discovery = sp.GetRequiredService<ServiceDiscoveryClient>();

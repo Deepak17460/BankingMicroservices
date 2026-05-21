@@ -22,15 +22,35 @@ cd BankingMicroservices
 dotnet build BankingMicroservices.sln
 ```
 
-Start **5 terminals** in order (see [docs/steps_run.md](docs/steps_run.md) for details):
+### **Option 1: Start Services in Order (Recommended)**
+
+Open **5 terminals** and start services **in this order**:
 
 ```bash
-dotnet run --project src/ServiceDiscovery/ServiceDiscovery.csproj      # :5003
-dotnet run --project src/ConfigurationService/ConfigurationService.csproj  # :5004
-dotnet run --project src/CustomerManagementService/CustomerManagementService.csproj  # :5001
-dotnet run --project src/AccountManagementService/AccountManagementService.csproj      # :5002
-dotnet run --project src/ApiGateway/ApiGateway.csproj                  # :5000
+# Terminal 1: Service Discovery (MUST BE FIRST)
+dotnet run -f net10.0 --project src/ServiceDiscovery/ServiceDiscovery.csproj      # :5003
+
+# Terminal 2: Configuration Service  
+dotnet run -f net10.0 --project src/ConfigurationService/ConfigurationService.csproj  # :5004
+
+# Terminal 3: Customer Management
+dotnet run -f net10.0 --project src/CustomerManagementService/CustomerManagementService.csproj  # :5001
+
+# Terminal 4: Account Management  
+dotnet run -f net10.0 --project src/AccountManagementService/AccountManagementService.csproj      # :5002
+
+# Terminal 5: API Gateway (LAST)
+dotnet run -f net10.0 --project src/ApiGateway/ApiGateway.csproj                  # :5000
 ```
+
+### **Option 2: Start in Any Order (Resilient Mode)**
+
+Services now include retry logic - you can start in any order:
+- Services will retry registration with Service Discovery every 5 seconds
+- Background failures won't crash the service
+- Once Service Discovery is available, all services will connect automatically
+
+**Why order matters:** Service Discovery (:5003) is the foundation - other services register with it to find each other.
 
 **Or Docker** (see [docs/docker.md](docs/docker.md)):
 
@@ -38,14 +58,32 @@ dotnet run --project src/ApiGateway/ApiGateway.csproj                  # :5000
 docker compose up --build
 ```
 
-**Smoke test** (gateway):
+### **Test the Application**
+
+**Smoke test** via API Gateway:
 
 ```bash
+# List customers (should return empty array initially)
 curl -s http://localhost:5000/gateway/customers
+
+# Create a customer
 curl -s -X POST http://localhost:5000/gateway/customers \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Doe","email":"jane@bank.com","phone":"555-0100","address":"123 Main St"}'
+
+# Create account for customer (use customer ID from above response)
+curl -s -X POST http://localhost:5000/gateway/accounts \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"<customer-id-from-above>"}'
 ```
+
+### **Swagger Documentation**
+
+Interactive API documentation available at:
+- **Customer Service**: http://localhost:5001/swagger
+- **Account Service**: http://localhost:5002/swagger  
+- **Service Discovery**: http://localhost:5003/swagger
+- **Configuration Service**: http://localhost:5004/swagger
 
 ## Services & ports
 
@@ -161,7 +199,7 @@ BankingMicroservices/
 | .NET 10.x | `net10.0` (default) |
 | .NET 8.x only | `net8.0` |
 
-If `dotnet run` asks for a framework: `dotnet run -f net10.0 --project src/...`
+**Framework Selection:** All commands above use `-f net10.0` to specify .NET 10. If you have only .NET 8, use `-f net8.0` instead.
 
 ## Architecture & Design Patterns
 
