@@ -204,6 +204,17 @@ ICustomerRepository InMemoryCustomerRepository
 ConcurrentDictionary<Guid, Customer>
 ```
 
+### Data Flow Example
+
+```mermaid
+graph LR
+    A[POST /gateway/customers] --> B[CustomersController]
+    B --> C[CustomerService] 
+    C --> D[InMemoryCustomerRepository]
+    D --> E[ConcurrentDictionary<Guid, Customer>]
+    E --> F[RAM Memory]
+```
+
 ### Inter-Service Communication
 
 Services communicate through **HTTP clients** with **service discovery**:
