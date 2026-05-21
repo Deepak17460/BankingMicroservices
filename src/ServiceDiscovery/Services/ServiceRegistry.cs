@@ -3,7 +3,7 @@ using BankingMicroservices.Shared.Models;
 
 namespace BankingMicroservices.ServiceDiscovery.Services;
 
-public class ServiceRegistry
+public class ServiceRegistry : IServiceRegistry
 {
     private readonly ConcurrentDictionary<string, ServiceRegistrationRequest> _services = new();
     private static readonly TimeSpan StaleThreshold = TimeSpan.FromSeconds(30);

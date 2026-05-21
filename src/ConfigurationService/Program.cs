@@ -14,7 +14,9 @@ var serviceUrl = builder.Configuration["Bootstrap:ServiceUrl"]
     ?? Environment.GetEnvironmentVariable("SERVICE_URL")
     ?? "http://localhost:5004";
 
-builder.Services.AddSingleton<ConfigurationStore>();
+// Services
+builder.Services.AddSingleton<IConfigurationStore, ConfigurationStore>();
+
 builder.Services.AddBankingHttpClients();
 builder.Services.AddBankingInfrastructure(
     serviceDiscoveryUrl,
@@ -22,18 +24,20 @@ builder.Services.AddBankingInfrastructure(
     "configuration-service",
     serviceUrl);
 
+// Controllers
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 app.UseBankingPipeline();
 
-app.MapGet("/config/{serviceName}", (string serviceName, ConfigurationStore store) =>
+// Configure Swagger for development
+if (app.Environment.IsDevelopment())
 {
-    var config = store.Get(serviceName);
-    if (config is null)
-    {
-        return Results.NotFound(new { message = $"Configuration for '{serviceName}' not found." });
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-    return Results.Ok(config);
-});
-
+app.MapControllers();
 app.Run();

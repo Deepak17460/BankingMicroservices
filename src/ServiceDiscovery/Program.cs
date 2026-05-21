@@ -16,8 +16,12 @@ var serviceUrl = builder.Configuration["Bootstrap:ServiceUrl"]
     ?? Environment.GetEnvironmentVariable("SERVICE_URL")
     ?? "http://localhost:5003";
 
-builder.Services.AddSingleton<ServiceRegistry>();
+// Services
+builder.Services.AddSingleton<IServiceRegistry, ServiceRegistry>();
+
+// Background Services
 builder.Services.AddHostedService<StaleServiceCleanupHostedService>();
+
 builder.Services.AddBankingHttpClients();
 builder.Services.AddBankingInfrastructure(
     serviceDiscoveryUrl,
@@ -25,24 +29,20 @@ builder.Services.AddBankingInfrastructure(
     "service-discovery",
     serviceUrl);
 
+// Controllers
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 app.UseBankingPipeline();
 
-app.MapPost("/register", (ServiceRegistrationRequest request, ServiceRegistry registry) =>
+// Configure Swagger for development
+if (app.Environment.IsDevelopment())
 {
-    registry.Register(request);
-    return Results.Ok(new { message = $"Service '{request.Name}' registered." });
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.MapGet("/discover/{serviceName}", (string serviceName, ServiceRegistry registry) =>
-{
-    var service = registry.Get(serviceName);
-    if (service is null)
-    {
-        return Results.NotFound(new { message = $"Service '{serviceName}' not found." });
-    }
-
-    return Results.Ok(new DiscoverResponse(service.Name, service.Url, service.LastHeartbeat));
-});
-
+app.MapControllers();
 app.Run();

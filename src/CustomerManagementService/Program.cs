@@ -38,41 +38,30 @@ builder.Services.AddBankingInfrastructure(
     configurationServiceUrl,
     "customer-management",
     serviceUrl);
+
+// Repository
 builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
+
+// Clients
 builder.Services.AddSingleton<AccountServiceClient>();
-builder.Services.AddSingleton<CustomerService>();
+
+// Services
+builder.Services.AddSingleton<ICustomerService, CustomerService>();
+
+// Controllers
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 app.UseBankingPipeline();
 
-app.MapPost("/api/customers", async (CreateCustomerRequest request, CustomerService service, CancellationToken ct) =>
+// Configure Swagger for development
+if (app.Environment.IsDevelopment())
 {
-    var customer = await service.CreateAsync(request, ct);
-    return Results.Created($"/api/customers/{customer.Id}", ApiResponse<CustomerDto>.Ok(customer));
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.MapGet("/api/customers", async (CustomerService service, CancellationToken ct) =>
-{
-    var customers = await service.GetAllAsync(ct);
-    return Results.Ok(ApiResponse<IReadOnlyList<CustomerDto>>.Ok(customers));
-});
-
-app.MapGet("/api/customers/{id:guid}", async (Guid id, CustomerService service, CancellationToken ct) =>
-{
-    var customer = await service.GetByIdAsync(id, ct);
-    return Results.Ok(ApiResponse<CustomerDto>.Ok(customer));
-});
-
-app.MapPut("/api/customers/{id:guid}", async (Guid id, UpdateCustomerRequest request, CustomerService service, CancellationToken ct) =>
-{
-    var customer = await service.UpdateAsync(id, request, ct);
-    return Results.Ok(ApiResponse<CustomerDto>.Ok(customer));
-});
-
-app.MapDelete("/api/customers/{id:guid}", async (Guid id, CustomerService service, CancellationToken ct) =>
-{
-    await service.DeleteAsync(id, ct);
-    return Results.Ok(ApiResponse<object>.Ok(null!, "Customer and associated account deleted."));
-});
-
+app.MapControllers();
 app.Run();

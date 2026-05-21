@@ -3,7 +3,7 @@ using BankingMicroservices.Shared.Models;
 
 namespace BankingMicroservices.ConfigurationService.Services;
 
-public class ConfigurationStore
+public class ConfigurationStore : IConfigurationStore
 {
     private readonly ConcurrentDictionary<string, ServiceConfiguration> _configs = new();
 

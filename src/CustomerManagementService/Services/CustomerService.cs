@@ -6,7 +6,7 @@ using BankingMicroservices.Shared.Exceptions;
 
 namespace BankingMicroservices.CustomerManagementService.Services;
 
-public class CustomerService
+public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _repository;
     private readonly AccountServiceClient _accountClient;

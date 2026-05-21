@@ -4,11 +4,11 @@ namespace BankingMicroservices.ServiceDiscovery.Hosting;
 
 public class StaleServiceCleanupHostedService : BackgroundService
 {
-    private readonly ServiceRegistry _registry;
+    private readonly IServiceRegistry _registry;
     private readonly ILogger<StaleServiceCleanupHostedService> _logger;
 
     public StaleServiceCleanupHostedService(
-        ServiceRegistry registry,
+        IServiceRegistry registry,
         ILogger<StaleServiceCleanupHostedService> logger)
     {
         _registry = registry;

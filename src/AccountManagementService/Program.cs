@@ -38,41 +38,30 @@ builder.Services.AddBankingInfrastructure(
     configurationServiceUrl,
     "account-management",
     serviceUrl);
+
+// Repository
 builder.Services.AddSingleton<IAccountRepository, InMemoryAccountRepository>();
+
+// Clients
 builder.Services.AddSingleton<CustomerServiceClient>();
-builder.Services.AddSingleton<AccountService>();
+
+// Services
+builder.Services.AddSingleton<IAccountService, AccountService>();
+
+// Controllers
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 app.UseBankingPipeline();
 
-app.MapPost("/api/accounts", async (CreateAccountRequest request, AccountService service, CancellationToken ct) =>
+// Configure Swagger for development
+if (app.Environment.IsDevelopment())
 {
-    var account = await service.CreateAccountAsync(request.CustomerId, ct);
-    return Results.Created($"/api/accounts/{account.Id}", ApiResponse<AccountDto>.Ok(account));
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.MapPost("/api/accounts/deposit", async (DepositRequest request, AccountService service, CancellationToken ct) =>
-{
-    var account = await service.DepositAsync(request, ct);
-    return Results.Ok(ApiResponse<AccountDto>.Ok(account, "Deposit successful."));
-});
-
-app.MapPost("/api/accounts/withdraw", async (WithdrawRequest request, AccountService service, CancellationToken ct) =>
-{
-    var account = await service.WithdrawAsync(request, ct);
-    return Results.Ok(ApiResponse<AccountDto>.Ok(account, "Withdrawal successful."));
-});
-
-app.MapGet("/api/accounts/{id:guid}", async (Guid id, AccountService service, CancellationToken ct) =>
-{
-    var account = await service.GetByIdAsync(id, ct);
-    return Results.Ok(ApiResponse<AccountWithCustomerDto>.Ok(account));
-});
-
-app.MapDelete("/api/accounts/customer/{customerId:guid}", async (Guid customerId, AccountService service, CancellationToken ct) =>
-{
-    await service.DeleteByCustomerIdAsync(customerId, ct);
-    return Results.Ok(ApiResponse<object>.Ok(null!, "Account deleted."));
-});
-
+app.MapControllers();
 app.Run();
