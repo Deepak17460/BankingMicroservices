@@ -43,7 +43,7 @@ docker compose up --build
 
 - First run **builds images** (may take 5–15 minutes).
 - Logs from all services appear in one terminal.
-- When ready, test: `http://localhost:5000/gateway/customers`
+- When ready, test: `http://localhost:5010/gateway/customers`
 
 **Stop and remove containers:**
 
@@ -61,21 +61,26 @@ docker compose up --build
 
 ## What gets started
 
-| Container | Port | Image built from |
-|-----------|------|------------------|
-| `api-gateway` | 5000 | `docker/Dockerfile.api-gateway` |
-| `customer-management` | 5001 | `docker/Dockerfile.customer` |
-| `account-management` | 5002 | `docker/Dockerfile.account` |
-| `service-discovery` | 5003 | `docker/Dockerfile.service-discovery` |
-| `configuration-service` | 5004 | `docker/Dockerfile.configuration` |
+| Container | Port | Image built from | Swagger Docs | Dashboard |
+|-----------|------|------------------|--------------|-----------|
+| `banking-api-gateway` | 5010 | `docker/Dockerfile.api-gateway` | http://localhost:5010/swagger | - |
+| `customer-service` | 5001 | `docker/Dockerfile.customer-service` | http://localhost:5001/swagger | - |
+| `account-service` | 5002 | `docker/Dockerfile.account-service` | http://localhost:5002/swagger | - |
+| `service-discovery` | 5003 | `docker/Dockerfile.service-discovery` | http://localhost:5003/swagger | http://localhost:5003 |
+| `configuration-service` | 5004 | `docker/Dockerfile.configuration-service` | http://localhost:5004/swagger | - |
 
-Startup order (via `depends_on`):
+Startup order (via `depends_on` with health checks):
 
 ```
-service-discovery → configuration-service → customer-management → account-management → api-gateway
+service-discovery → configuration-service → customer-service → account-service → banking-api-gateway
 ```
 
-Inside Docker, services talk to each other by **container name** (e.g. `http://customer-management:5001`). Your machine uses **localhost** on the mapped ports.
+**Health Check Features:**
+- All services include health check endpoints  
+- Docker waits for dependencies to be healthy before starting dependent services
+- Services register automatically with Service Discovery on startup
+
+Inside Docker, services talk to each other by **container name** (e.g. `http://customer-service:5001`). Your machine uses **localhost** on the mapped ports.
 
 ---
 
@@ -85,15 +90,16 @@ Inside Docker, services talk to each other by **container name** (e.g. `http://c
 
 | Action | Method | URL |
 |--------|--------|-----|
-| List customers | GET | `http://localhost:5000/gateway/customers` |
-| Create customer | POST | `http://localhost:5000/gateway/customers` |
-| Deposit | POST | `http://localhost:5000/gateway/accounts/deposit` |
-| Withdraw | POST | `http://localhost:5000/gateway/accounts/withdraw` |
+| **Service Discovery Dashboard** | GET | `http://localhost:5003` |
+| List customers | GET | `http://localhost:5010/gateway/customers` |
+| Create customer | POST | `http://localhost:5010/gateway/customers` |
+| Deposit | POST | `http://localhost:5010/gateway/accounts/deposit` |
+| Withdraw | POST | `http://localhost:5010/gateway/accounts/withdraw` |
 
 **Create customer (Postman / curl):**
 
 ```bash
-curl -s -X POST http://localhost:5000/gateway/customers \
+curl -s -X POST http://localhost:5010/gateway/customers \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Doe","email":"jane@bank.com","phone":"555-0100","address":"123 Main St"}'
 ```
@@ -101,16 +107,23 @@ curl -s -X POST http://localhost:5000/gateway/customers \
 **Deposit** (replace `customerId`):
 
 ```bash
-curl -s -X POST http://localhost:5000/gateway/accounts/deposit \
+curl -s -X POST http://localhost:5010/gateway/accounts/deposit \
   -H "Content-Type: application/json" \
   -d '{"customerId":"<customerId>","amount":500}'
 ```
 
 Full API list: [api.md](./api.md)
 
-### Infrastructure (optional)
+### Infrastructure & Monitoring
 
 ```bash
+# Service Discovery Dashboard (NEW!)
+curl -s http://localhost:5003
+
+# Service Registry API
+curl -s http://localhost:5003/api/registry
+
+# Traditional Discovery Endpoints  
 curl -s http://localhost:5003/discover/customer-management
 curl -s http://localhost:5004/config/customer-management
 ```
@@ -157,10 +170,10 @@ docker compose down
 - `ASPNETCORE_ENVIRONMENT=Docker` → loads `appsettings.Docker.json` per service
 - `Bootstrap__ServiceDiscoveryUrl`, `Bootstrap__ConfigurationServiceUrl`, `Bootstrap__ServiceUrl` → internal Docker hostnames
 
-Gateway routes (YARP) point to:
+Gateway routes (Ocelot) point to:
 
-- `http://customer-management:5001`
-- `http://account-management:5002`
+- `http://customer-service:5001`  
+- `http://account-service:5002`
 
 ---
 
@@ -170,7 +183,7 @@ Gateway routes (YARP) point to:
 |---------|-------------|
 | `docker: command not found` | Install Docker Desktop; restart terminal |
 | WSL: cannot connect to Docker | Enable WSL integration in Docker Desktop |
-| Port already in use (5000–5004) | Stop local `dotnet run` instances or change ports in `docker-compose.yml` |
+| Port already in use (5001–5004, 5010) | Stop local `dotnet run` instances or change ports in `docker-compose.yml` |
 | Build fails / timeout | Run from a local disk path (not slow sync folder); retry `docker compose build --no-cache` |
 | `Connection refused` right after start | Wait 30–60s for all services to register; retry request |
 | Customer create fails | Check logs: `docker compose logs customer-management` |
@@ -219,6 +232,7 @@ Each Dockerfile:
 
 - [ ] Docker installed and running  
 - [ ] `docker compose up --build` completes without errors  
-- [ ] `curl http://localhost:5000/gateway/customers` returns JSON  
+- [ ] `curl http://localhost:5010/gateway/customers` returns JSON  
+- [ ] Service Discovery dashboard loads at `http://localhost:5003`  
 - [ ] Create customer → deposit → withdraw works via gateway  
 - [ ] `docker compose down` stops everything  

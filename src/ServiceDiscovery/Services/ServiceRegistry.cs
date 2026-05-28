@@ -29,6 +29,11 @@ public class ServiceRegistry : IServiceRegistry
         return null;
     }
 
+    public IEnumerable<ServiceRegistrationRequest> GetAll()
+    {
+        return _services.Values.OrderBy(s => s.Name);
+    }
+
     public int RemoveStaleServices()
     {
         var staleKeys = _services

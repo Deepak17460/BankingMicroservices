@@ -1,0 +1,412 @@
+{
+	"info": {
+		"_postman_id": "banking-test-workflow",
+		"name": "Banking Test Workflow",
+		"description": "**Automated test workflow for Banking Microservices**\n\nThis collection demonstrates the complete banking workflow:\n1. Create Customer (auto-saves customer ID)\n2. Deposit Money (auto-saves account ID)\n3. Check Balance\n4. Withdraw Money\n5. Verify Final Balance\n6. Update Customer Info\n7. Cleanup (Delete Customer)\n\n**Run Instructions:**\n1. Import main collection and environment\n2. Run this workflow collection with 'Collection Runner'\n3. All tests will pass if services are working correctly\n\n**Prerequisites:**\n- All 5 microservices running\n- Service Discovery showing all services healthy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Create Test Customer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Customer created successfully', function () {",
+							"    pm.expect(pm.response.code).to.equal(201);",
+							"});",
+							"",
+							"pm.test('Response has success=true', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Customer ID is generated', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.id).to.exist;",
+							"    pm.environment.set('customerId', response.data.id);",
+							"    console.log('Customer created with ID:', response.data.id);",
+							"});",
+							"",
+							"pm.test('Customer data is correct', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.name).to.equal('Alice Test');",
+							"    pm.expect(response.data.email).to.equal('alice.test@bankingcorp.com');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Alice Test\",\n  \"email\": \"alice.test@bankingcorp.com\",\n  \"phone\": \"+1-555-TEST\",\n  \"address\": \"123 Test Street, Test City, TC 12345\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/gateway/customers",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"customers"
+					]
+				}
+			}
+		},
+		{
+			"name": "2. Initial Deposit",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Deposit successful', function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"pm.test('Balance updated correctly', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.balance).to.equal(500);",
+							"    pm.environment.set('accountId', response.data.id);",
+							"    console.log('Deposited $500, Account ID:', response.data.id);",
+							"});",
+							"",
+							"pm.test('Account type is Checking', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.accountType).to.equal('Checking');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 500.00\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/gateway/accounts/deposit",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"accounts",
+						"deposit"
+					]
+				}
+			}
+		},
+		{
+			"name": "3. Check Account Balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Account retrieved successfully', function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"pm.test('Balance is $500', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.balance).to.equal(500);",
+							"    console.log('Current balance: $' + response.data.balance);",
+							"});",
+							"",
+							"pm.test('Customer info included', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.customer).to.exist;",
+							"    pm.expect(response.data.customer.name).to.equal('Alice Test');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/gateway/accounts/{{accountId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"accounts",
+						"{{accountId}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "4. Withdraw Money",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Withdrawal successful', function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"pm.test('Balance reduced correctly', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.balance).to.equal(300);",
+							"    console.log('Withdrew $200, New balance: $' + response.data.balance);",
+							"});",
+							"",
+							"pm.test('Success message present', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.message).to.include('Withdrawal successful');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 200.00\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/gateway/accounts/withdraw",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"accounts",
+						"withdraw"
+					]
+				}
+			}
+		},
+		{
+			"name": "5. Verify Final Balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Final balance is correct', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.balance).to.equal(300);",
+							"    console.log('Final balance verified: $' + response.data.balance);",
+							"});",
+							"",
+							"pm.test('Account still active', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.accountType).to.equal('Checking');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/gateway/accounts/{{accountId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"accounts",
+						"{{accountId}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "6. Update Customer Info",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Customer updated successfully', function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"pm.test('Customer name updated', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.name).to.equal('Alice Updated');",
+							"    console.log('Customer name updated to:', response.data.name);",
+							"});",
+							"",
+							"pm.test('Email updated', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.data.email).to.equal('alice.updated@bankingcorp.com');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.updated@bankingcorp.com\",\n  \"phone\": \"+1-555-UPDATED\",\n  \"address\": \"456 Updated Avenue, New City, NC 54321\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/gateway/customers/{{customerId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"customers",
+						"{{customerId}}"
+					]
+				}
+			}
+		},
+		{
+			"name": "7. Test Insufficient Balance",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Insufficient balance error returned', function () {",
+							"    pm.expect(pm.response.code).to.equal(400);",
+							"});",
+							"",
+							"pm.test('Error message is appropriate', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.title).to.include('Insufficient Balance');",
+							"    console.log('Insufficient balance properly handled');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 1000.00\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/gateway/accounts/withdraw",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"accounts",
+						"withdraw"
+					]
+				}
+			}
+		},
+		{
+			"name": "8. Cleanup - Delete Customer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Customer deleted successfully', function () {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});",
+							"",
+							"pm.test('Deletion message correct', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.message).to.include('deleted');",
+							"    console.log('Test cleanup completed - Customer and account deleted');",
+							"});",
+							"",
+							"// Clear environment variables",
+							"pm.environment.unset('customerId');",
+							"pm.environment.unset('accountId');",
+							"console.log('Environment variables cleared');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/gateway/customers/{{customerId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"gateway",
+						"customers",
+						"{{customerId}}"
+					]
+				}
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('Running Banking Microservices Test Workflow...');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"if (pm.info.iteration === (pm.info.iterationCount - 1)) {",
+					"    console.log('Banking Test Workflow Completed!');",
+					"}"
+				]
+			}
+		}
+	]
+}

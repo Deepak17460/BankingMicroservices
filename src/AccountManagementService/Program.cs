@@ -10,14 +10,14 @@ using BankingMicroservices.Shared.Models;
 var builder = WebApplication.CreateBuilder(args);
 builder.UseBankingSerilog();
 
-var serviceDiscoveryUrl = builder.Configuration["Bootstrap:ServiceDiscoveryUrl"]
-    ?? Environment.GetEnvironmentVariable("SERVICE_DISCOVERY_URL")
+var serviceDiscoveryUrl = Environment.GetEnvironmentVariable("SERVICE_DISCOVERY_URL")
+    ?? builder.Configuration["Bootstrap:ServiceDiscoveryUrl"]
     ?? "http://localhost:5003";
-var configurationServiceUrl = builder.Configuration["Bootstrap:ConfigurationServiceUrl"]
-    ?? Environment.GetEnvironmentVariable("CONFIGURATION_SERVICE_URL")
+var configurationServiceUrl = Environment.GetEnvironmentVariable("CONFIGURATION_SERVICE_URL")
+    ?? builder.Configuration["Bootstrap:ConfigurationServiceUrl"]
     ?? "http://localhost:5004";
-var serviceUrl = builder.Configuration["Bootstrap:ServiceUrl"]
-    ?? Environment.GetEnvironmentVariable("SERVICE_URL")
+var serviceUrl = Environment.GetEnvironmentVariable("SERVICE_URL")
+    ?? builder.Configuration["Bootstrap:ServiceUrl"]
     ?? "http://localhost:5002";
 
 // Try to load remote configuration, fall back to defaults if not available
@@ -81,4 +81,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+
+// Health check endpoint
+app.MapGet("/health", () => Results.Json(new { status = "UP", service = "account-management" }));
+
 app.Run();

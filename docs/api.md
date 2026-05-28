@@ -6,13 +6,20 @@ All banking operations should go through the **API Gateway** when possible. Infr
 
 **Base URLs (local development)**
 
-| Service | Base URL |
-|---------|----------|
-| API Gateway (recommended) | `http://localhost:5000` |
-| Customer Management | `http://localhost:5001` |
-| Account Management | `http://localhost:5002` |
-| Service Discovery | `http://localhost:5003` |
-| Configuration Service | `http://localhost:5004` |
+| Service | Base URL | Swagger API Docs |
+|---------|----------|------------------|
+| API Gateway (recommended) | `http://localhost:5010` | `http://localhost:5010/swagger` |
+| Customer Management | `http://localhost:5001` | `http://localhost:5001/swagger` |
+| Account Management | `http://localhost:5002` | `http://localhost:5002/swagger` |
+| Service Discovery | `http://localhost:5003` | `http://localhost:5003/swagger` |
+| Configuration Service | `http://localhost:5004` | `http://localhost:5004/swagger` |
+
+**Additional URLs**
+
+| Resource | URL | Description |
+|----------|-----|-------------|
+| Service Discovery Dashboard | `http://localhost:5003` | Real-time Eureka-style dashboard |
+| Service Registry API | `http://localhost:5003/api/registry` | JSON API for registered services |
 
 **Common headers**
 
@@ -59,14 +66,20 @@ Errors return `application/problem+json`:
 
 ---
 
-## API Gateway (port 5000)
+## API Gateway (port 5010)
 
-YARP reverse proxy. Gateway paths are rewritten to backend `/api/...` routes.
+**Ocelot** reverse proxy with Swagger documentation. Gateway paths are rewritten to backend `/api/...` routes.
 
 | Gateway path | Proxied to |
 |--------------|------------|
 | `/gateway/customers/**` | Customer Service `/api/customers/**` |
 | `/gateway/accounts/**` | Account Service `/api/accounts/**` |
+
+**Features:**
+- **Swagger Documentation**: Available at `http://localhost:5010/swagger`
+- **Correlation ID Tracking**: Automatic distributed tracing headers
+- **Service Discovery Integration**: Routes to services via registry
+- **Health Checks**: Integrated with Docker Compose dependencies
 
 Use these URLs in **Postman** and external clients.
 
@@ -84,7 +97,7 @@ Use these URLs in **Postman** and external clients.
 | `PUT` | `/gateway/customers/{id}` | Update customer |
 | `DELETE` | `/gateway/customers/{id}` | Delete customer and linked account |
 
-**Full URLs:** `http://localhost:5000/gateway/customers[...]`
+**Full URLs:** `http://localhost:5010/gateway/customers[...]`
 
 ### Direct (Customer Service — port 5001)
 
@@ -235,7 +248,7 @@ Use these URLs in **Postman** and external clients.
 | `GET` | `/gateway/accounts/{id}` | Get account with customer details |
 | `DELETE` | `/gateway/accounts/customer/{customerId}` | Delete account by customer ID |
 
-**Full URLs:** `http://localhost:5000/gateway/accounts[...]`
+**Full URLs:** `http://localhost:5010/gateway/accounts[...]`
 
 ### Direct (Account Service — port 5002)
 
@@ -415,7 +428,19 @@ Normally invoked automatically when a customer is created. Can be called manuall
 
 ## Service Discovery (port 5003)
 
-Lightweight registry (Eureka-like concept, **no web UI**). Services register on startup and send a heartbeat every **10 seconds**. Entries with no heartbeat for **30+ seconds** are removed.
+**Custom Eureka-like service registry** with professional web dashboard. Services register on startup and send a heartbeat every **10 seconds**. Entries with no heartbeat for **30+ seconds** are removed.
+
+**Dashboard Features:**
+- **Real-time UI**: `http://localhost:5003` - Enterprise-grade Eureka-style dashboard
+- **Live Statistics**: Total/Available/Unavailable services with auto-refresh
+- **Service Status**: Visual indicators and clickable Swagger links
+- **JSON API**: `http://localhost:5003/api/registry` - Programmatic access
+- **Auto-refresh**: Updates every 10 seconds with countdown timer
+
+**Architecture:**
+- **Controller-Service-Repository pattern**: Clean separation of concerns
+- **Background cleanup**: Automatic removal of stale services
+- **Health monitoring**: Real-time service health tracking
 
 ### Register service
 
@@ -519,14 +544,14 @@ Central in-memory configuration. Other services fetch config on startup.
 
 | Action | Method | URL |
 |--------|--------|-----|
-| Create customer | `POST` | `http://localhost:5000/gateway/customers` |
-| List customers | `GET` | `http://localhost:5000/gateway/customers` |
-| Get customer | `GET` | `http://localhost:5000/gateway/customers/{id}` |
-| Update customer | `PUT` | `http://localhost:5000/gateway/customers/{id}` |
-| Delete customer | `DELETE` | `http://localhost:5000/gateway/customers/{id}` |
-| Deposit | `POST` | `http://localhost:5000/gateway/accounts/deposit` |
-| Withdraw | `POST` | `http://localhost:5000/gateway/accounts/withdraw` |
-| Get account | `GET` | `http://localhost:5000/gateway/accounts/{accountId}` |
+| Create customer | `POST` | `http://localhost:5010/gateway/customers` |
+| List customers | `GET` | `http://localhost:5010/gateway/customers` |
+| Get customer | `GET` | `http://localhost:5010/gateway/customers/{id}` |
+| Update customer | `PUT` | `http://localhost:5010/gateway/customers/{id}` |
+| Delete customer | `DELETE` | `http://localhost:5010/gateway/customers/{id}` |
+| Deposit | `POST` | `http://localhost:5010/gateway/accounts/deposit` |
+| Withdraw | `POST` | `http://localhost:5010/gateway/accounts/withdraw` |
+| Get account | `GET` | `http://localhost:5010/gateway/accounts/{accountId}` |
 | Discover service | `GET` | `http://localhost:5003/discover/customer-management` |
 | Get config | `GET` | `http://localhost:5004/config/customer-management` |
 
@@ -549,17 +574,17 @@ Central in-memory configuration. Other services fetch config on startup.
 
 ```bash
 # Create customer
-curl -s -X POST http://localhost:5000/gateway/customers \
+curl -s -X POST http://localhost:5010/gateway/customers \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Doe","email":"jane@bank.com","phone":"555-0100","address":"123 Main St"}'
 
 # Deposit
-curl -s -X POST http://localhost:5000/gateway/accounts/deposit \
+curl -s -X POST http://localhost:5010/gateway/accounts/deposit \
   -H "Content-Type: application/json" \
   -d '{"customerId":"<customerId>","amount":500}'
 
 # Withdraw
-curl -s -X POST http://localhost:5000/gateway/accounts/withdraw \
+curl -s -X POST http://localhost:5010/gateway/accounts/withdraw \
   -H "Content-Type: application/json" \
   -d '{"customerId":"<customerId>","amount":100}'
 
@@ -569,9 +594,77 @@ curl -s http://localhost:5003/discover/customer-management
 
 ---
 
-## Architecture notes
+---
 
-- All **inter-service** calls resolve peer URLs through **Service Discovery** (no hardcoded `localhost:5001` in business logic).
-- **Bootstrap** URLs for discovery (`5003`) and configuration (`5004`) are set in `appsettings.json` / environment variables only.
-- Storage is **in-memory** (`ConcurrentDictionary`); data is lost when a service restarts.
-- There is **no authentication** in this MVP; do not expose publicly without adding security.
+## Docker Deployment
+
+The entire microservices architecture can be deployed using Docker Compose:
+
+```bash
+# Build and start all services
+docker compose up --build
+
+# Start in background
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# View logs
+docker compose logs -f [service-name]
+```
+
+**Service Dependencies:**
+- Service Discovery starts first (all others depend on it)
+- Configuration Service starts after Service Discovery
+- Business services (Customer, Account) start after infrastructure
+- API Gateway starts last (depends on all business services)
+
+**Health Checks:**
+- All services include health check endpoints
+- Docker waits for dependencies to be healthy before starting dependent services
+- Services register automatically with Service Discovery on startup
+
+---
+
+## Architecture Overview
+
+### 🏗️ **SOLID Principles Implementation**
+- **Controller-Service-Repository Pattern**: Clean separation of concerns
+- **Dependency Injection**: All services use DI container
+- **Interface-based Design**: Services depend on abstractions
+- **Single Responsibility**: Each class has one clear purpose
+
+### 🔄 **Microservices Patterns**
+- **API Gateway**: Ocelot-based routing with Swagger documentation
+- **Service Discovery**: Custom Eureka-like registry with real-time dashboard
+- **Configuration Management**: Centralized config service
+- **Circuit Breaker**: Polly integration for resilience
+- **Correlation ID**: Distributed tracing across services
+
+### 🛠️ **Cross-cutting Concerns**
+- **Exception Handling**: Global middleware with ProblemDetails
+- **Logging**: Structured logging with Serilog and correlation IDs
+- **Health Checks**: Built-in endpoints for monitoring
+- **Swagger Documentation**: Auto-generated API docs for all services
+
+### 📊 **Data Flow**
+1. **Client Request** → API Gateway (port 5010)
+2. **Gateway Routing** → Business Service via Ocelot
+3. **Service Discovery** → Resolve inter-service URLs
+4. **Configuration Service** → Load settings on startup
+5. **Response** → Structured JSON with correlation tracking
+
+### 🔒 **Security Notes**
+- All **inter-service** calls resolve peer URLs through **Service Discovery** (no hardcoded `localhost:5001` in business logic)
+- **Bootstrap** URLs for discovery (`5003`) and configuration (`5004`) are set in environment variables
+- Storage is **in-memory** (`ConcurrentDictionary`); data is lost when a service restarts
+- There is **no authentication** in this MVP; do not expose publicly without adding security
+- **Correlation IDs** enable request tracking across the distributed system
+
+### 🚀 **Production Readiness Features**
+- **Docker Compose**: Full containerization with dependency management
+- **Health Monitoring**: Real-time service status dashboard
+- **Error Handling**: Comprehensive exception management
+- **Logging**: Centralized structured logging
+- **Documentation**: Auto-generated Swagger for all APIs

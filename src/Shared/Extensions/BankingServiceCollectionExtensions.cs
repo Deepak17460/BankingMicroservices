@@ -47,11 +47,18 @@ public static class BankingServiceCollectionExtensions
 
     public static IServiceCollection AddBankingHttpClients(this IServiceCollection services)
     {
+        // Register correlation ID handler
+        services.AddHttpContextAccessor();
+        services.AddTransient<BankingMicroservices.Shared.Handlers.CorrelationIdHandler>();
+
         services.AddHttpClient("ServiceDiscovery")
+            .AddHttpMessageHandler<BankingMicroservices.Shared.Handlers.CorrelationIdHandler>()
             .AddBankingResiliencePolicies();
         services.AddHttpClient("ConfigurationService")
+            .AddHttpMessageHandler<BankingMicroservices.Shared.Handlers.CorrelationIdHandler>()
             .AddBankingResiliencePolicies();
         services.AddHttpClient("InterService")
+            .AddHttpMessageHandler<BankingMicroservices.Shared.Handlers.CorrelationIdHandler>()
             .AddBankingResiliencePolicies();
         return services;
     }
@@ -68,6 +75,7 @@ public static class BankingServiceCollectionExtensions
     public static WebApplication UseBankingPipeline(this WebApplication app)
     {
         app.UseSerilogRequestLogging();
+        app.UseCorrelationId();
         app.UseGlobalExceptionHandling();
         return app;
     }

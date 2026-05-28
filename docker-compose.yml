@@ -1,79 +1,183 @@
+# Banking Microservices - Docker Compose Configuration
+# Runs all microservices with service discovery, API Gateway, and centralized configuration
+
+# ─── Shared environment variables injected into every .NET service ────────────
+x-common-env: &common-env
+  # Service Discovery Configuration
+  SERVICE_DISCOVERY_URL: "http://service-discovery:5003"
+  CONFIGURATION_SERVICE_URL: "http://configuration-service:5004"
+  # Logging Configuration
+  ASPNETCORE_ENVIRONMENT: "Development"
+  # Correlation ID for distributed tracing
+  ENABLE_CORRELATION_ID: "true"
+
 services:
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # 1. SERVICE DISCOVERY — Custom Eureka-like Service Registry
+  #    Dashboard: http://localhost:5003/ (Service Registry UI)
+  #    API: http://localhost:5003/swagger (Registration/Discovery APIs)
+  # ──────────────────────────────────────────────────────────────────────────────
   service-discovery:
     build:
       context: .
       dockerfile: docker/Dockerfile.service-discovery
+    image: banking/service-discovery:latest
     container_name: service-discovery
     ports:
       - "5003:5003"
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
-      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
-      Bootstrap__ServiceUrl: http://service-discovery:5003
+      <<: *common-env
+      ASPNETCORE_URLS: "http://+:5003"
+      SERVICE_URL: "http://service-discovery:5003"
+    volumes:
+      - ./logs/service-discovery:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/5003' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banking-net
 
+  # ──────────────────────────────────────────────────────────────────────────────
+  # 2. CONFIGURATION SERVICE — Centralized Configuration Management
+  #    API: http://localhost:5004/swagger (Configuration APIs)
+  # ──────────────────────────────────────────────────────────────────────────────
   configuration-service:
     build:
       context: .
-      dockerfile: docker/Dockerfile.configuration
+      dockerfile: docker/Dockerfile.configuration-service
+    image: banking/configuration-service:latest
     container_name: configuration-service
     ports:
       - "5004:5004"
-    depends_on:
-      - service-discovery
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
-      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
-      Bootstrap__ServiceUrl: http://configuration-service:5004
+      <<: *common-env
+      ASPNETCORE_URLS: "http://+:5004"
+      SERVICE_URL: "http://configuration-service:5004"
+    volumes:
+      - ./logs/configuration-service:/app/logs
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/5004' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banking-net
 
-  customer-management:
+  # ──────────────────────────────────────────────────────────────────────────────
+  # 3. CUSTOMER MANAGEMENT SERVICE — Customer CRUD operations
+  #    API: http://localhost:5001/swagger (Customer Management APIs)
+  # ──────────────────────────────────────────────────────────────────────────────
+  customer-service:
     build:
       context: .
-      dockerfile: docker/Dockerfile.customer
-    container_name: customer-management
+      dockerfile: docker/Dockerfile.customer-service
+    image: banking/customer-service:latest
+    container_name: customer-service
     ports:
       - "5001:5001"
-    depends_on:
-      - service-discovery
-      - configuration-service
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
-      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
-      Bootstrap__ServiceUrl: http://customer-management:5001
+      <<: *common-env
+      ASPNETCORE_URLS: "http://+:5001"
+      SERVICE_URL: "http://customer-service:5001"
+    volumes:
+      - ./logs/customer-service:/app/logs
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+      configuration-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/5001' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banking-net
 
-  account-management:
+  # ──────────────────────────────────────────────────────────────────────────────
+  # 4. ACCOUNT MANAGEMENT SERVICE — Account operations, deposits, withdrawals
+  #    API: http://localhost:5002/swagger (Account Management APIs)
+  # ──────────────────────────────────────────────────────────────────────────────
+  account-service:
     build:
       context: .
-      dockerfile: docker/Dockerfile.account
-    container_name: account-management
+      dockerfile: docker/Dockerfile.account-service
+    image: banking/account-service:latest
+    container_name: account-service
     ports:
       - "5002:5002"
-    depends_on:
-      - service-discovery
-      - configuration-service
-      - customer-management
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
-      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
-      Bootstrap__ServiceUrl: http://account-management:5002
+      <<: *common-env
+      ASPNETCORE_URLS: "http://+:5002"
+      SERVICE_URL: "http://account-service:5002"
+    volumes:
+      - ./logs/account-service:/app/logs
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+      configuration-service:
+        condition: service_healthy
+      customer-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/5002' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banking-net
 
+  # ──────────────────────────────────────────────────────────────────────────────
+  # 5. API GATEWAY — Ocelot + Dynamic Service Discovery routing
+  #    All traffic enters here. Routes to microservices via service discovery.
+  #    API: http://localhost:5010/swagger
+  # ──────────────────────────────────────────────────────────────────────────────
   api-gateway:
     build:
       context: .
       dockerfile: docker/Dockerfile.api-gateway
-    container_name: api-gateway
+    image: banking/api-gateway:latest
+    container_name: banking-api-gateway
     ports:
-      - "5000:5000"
-    depends_on:
-      - service-discovery
-      - configuration-service
-      - customer-management
-      - account-management
+      - "5010:5000"
     environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      Bootstrap__ServiceDiscoveryUrl: http://service-discovery:5003
-      Bootstrap__ConfigurationServiceUrl: http://configuration-service:5004
-      Bootstrap__ServiceUrl: http://api-gateway:5000
+      <<: *common-env
+      ASPNETCORE_URLS: "http://+:5000"
+      SERVICE_URL: "http://banking-api-gateway:5000"
+    volumes:
+      - ./logs/api-gateway:/app/logs
+    depends_on:
+      service-discovery:
+        condition: service_healthy
+      configuration-service:
+        condition: service_healthy
+      customer-service:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/5000' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banking-net
+
+networks:
+  banking-net:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local

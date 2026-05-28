@@ -1,6 +1,6 @@
 # Banking Microservices MVP
 
-A .NET microservices banking demo with in-memory storage, custom service discovery, centralized configuration, a YARP API gateway, Polly resilience, and Serilog logging.
+A .NET microservices banking demo with in-memory storage, custom service discovery, centralized configuration, an Ocelot API gateway, Polly resilience, and Serilog logging.
 
 **Built with SOLID principles using Controller-Service-Repository pattern for maintainable, testable, and extensible code.**
 
@@ -15,67 +15,206 @@ A .NET microservices banking demo with in-memory storage, custom service discove
 
 ## Quick start
 
-**Prerequisites:** [.NET SDK](https://dotnet.microsoft.com/download) 8.0+ or 10.0+ · optional [Docker](https://www.docker.com/products/docker-desktop/)
+**Prerequisites:** [.NET SDK](https://dotnet.microsoft.com/download) 10.0+ · optional [Docker](https://www.docker.com/products/docker-desktop/)
 
 ```bash
 cd BankingMicroservices
-dotnet build BankingMicroservices.sln
+dotnet restore BankingMicroservices.slnx
+dotnet build BankingMicroservices.slnx
 ```
 
-### **Option 1: Start Services in Order (Recommended)**
+### **Option 1: Single-Command Startup (Easiest)**
 
-Open **5 terminals** and start services **in this order**:
+**Linux/macOS/WSL:**
+```bash
+# One-time setup: Fix line endings and make executable
+sed -i 's/\r$//' run_all.sh stop_all.sh setup_scripts.sh
+chmod +x run_all.sh stop_all.sh setup_scripts.sh
+
+# Start all services
+./run_all.sh
+
+# Stop all services (when done)  
+./stop_all.sh
+```
+
+**Important:** Use `./run_all.sh`, NOT `source run_all.sh`
+
+**Windows:**
+```batch
+# Start all services
+run_all.bat
+
+# Stop: Close all terminal windows or use Ctrl+C
+```
+
+### **Option 2: Manual Service Startup (5 Terminals)**
+
+Open **5 separate terminals** and start services **in this exact order**:
+
+#### **Terminal 1: Service Discovery (Port 5003) - START FIRST**
+```bash
+cd BankingMicroservices
+dotnet run --project src/ServiceDiscovery/ServiceDiscovery.csproj
+```
+**Wait for:** `"Now listening on: http://localhost:5003"`  
+**Verify:** Open http://localhost:5003 - Should show service dashboard
+
+#### **Terminal 2: Configuration Service (Port 5004)**
+```bash
+cd BankingMicroservices  
+dotnet run --project src/ConfigurationService/ConfigurationService.csproj
+```
+**Wait for:** `"Now listening on: http://localhost:5004"`  
+**Verify:** Dashboard should now show 2 services
+
+#### **Terminal 3: Customer Management Service (Port 5001)**
+```bash
+cd BankingMicroservices
+dotnet run --project src/CustomerManagementService/CustomerManagementService.csproj
+```
+**Wait for:** `"Now listening on: http://localhost:5001"`  
+**Verify:** http://localhost:5001/swagger should load
+
+#### **Terminal 4: Account Management Service (Port 5002)**
+```bash
+cd BankingMicroservices
+dotnet run --project src/AccountManagementService/AccountManagementService.csproj
+```
+**Wait for:** `"Now listening on: http://localhost:5002"`  
+**Verify:** http://localhost:5002/swagger should load
+
+#### **Terminal 5: API Gateway (Port 5010) - START LAST**
+```bash
+cd BankingMicroservices
+dotnet run --project src/ApiGateway/ApiGateway.csproj
+```
+**Wait for:** `"Now listening on: http://localhost:5010"`  
+**Final Verify:** All 5 services should appear in Service Discovery dashboard
+
+### **Startup Verification Checklist**
+
+✅ **Service Discovery Dashboard**: http://localhost:5003 shows all 5 services  
+✅ **Service Discovery Dashboard**: http://localhost:5003 shows all 5 services  
+✅ **All Health Checks**: All services respond `200 OK` to `/health` endpoint  
+✅ **API Gateway Test**: `curl http://localhost:5010/gateway/customers`  
+✅ **All Swagger UIs**: Each service's `/swagger` endpoint loads
+
+**Important Notes:**
+- **Dependency Order**: Service Discovery must start first, API Gateway must start last
+- **Startup Time**: Allow 30-60 seconds for all services to register
+- **Port Requirements**: Ensure ports 5001-5004 and 5010 are available
+
+### **Automated Startup Scripts**
+
+For convenience, the project includes platform-specific scripts:
+
+#### **Linux/macOS/WSL:**
+- `run_all.sh` - Starts all services with proper dependency ordering, health checks, and real-time monitoring
+- `stop_all.sh` - Gracefully stops all services and cleans up PID files  
+- `setup_scripts.sh` - Makes shell scripts executable (run once)
+
+#### **Windows:**
+- `run_all.bat` - Starts all services in separate CMD windows
+- `start-services.ps1` - PowerShell version that starts services in separate windows
+
+#### **Script Features:**
+- ✅ **Dependency Management**: Starts services in correct order with delays
+- ✅ **Health Checks**: Waits for each service to be healthy before starting next
+- ✅ **Error Handling**: Stops on first failure with clear error messages
+- ✅ **Process Management**: Tracks PIDs for clean shutdown
+- ✅ **Real-time Monitoring**: Shows live service status updates
+- ✅ **Browser Integration**: Opens Service Discovery dashboard automatically
+- ✅ **Organized Logging**: Each service gets its own log folder (`logs/service-name/`)
+
+#### **Script Usage Examples:**
 
 ```bash
-# Terminal 1: Service Discovery (MUST BE FIRST)
-dotnet run -f net10.0 --project src/ServiceDiscovery/ServiceDiscovery.csproj      # :5003
+# Linux/macOS - Full automated startup with monitoring
+./run_all.sh
 
-# Terminal 2: Configuration Service  
-dotnet run -f net10.0 --project src/ConfigurationService/ConfigurationService.csproj  # :5004
+# Stop all services gracefully  
+./stop_all.sh
 
-# Terminal 3: Customer Management
-dotnet run -f net10.0 --project src/CustomerManagementService/CustomerManagementService.csproj  # :5001
+# Check service status
+./run_all.sh --status
 
-# Terminal 4: Account Management  
-dotnet run -f net10.0 --project src/AccountManagementService/AccountManagementService.csproj      # :5002
-
-# Terminal 5: API Gateway (LAST)
-dotnet run -f net10.0 --project src/ApiGateway/ApiGateway.csproj                  # :5000
+# Windows - Start in separate windows
+run_all.bat
 ```
 
-### **Option 2: Start in Any Order (Resilient Mode)**
+### **Troubleshooting Script Issues**
 
-Services now include retry logic - you can start in any order:
-- Services will retry registration with Service Discovery every 5 seconds
-- Background failures won't crash the service
-- Once Service Discovery is available, all services will connect automatically
+#### **"command not found" Error (Linux/WSL)**
+```bash
+# Problem: Windows line endings in scripts
+# Solution: Convert line endings
+sed -i 's/\r$//' run_all.sh stop_all.sh setup_scripts.sh
+chmod +x *.sh
 
-**Why order matters:** Service Discovery (:5003) is the foundation - other services register with it to find each other.
+# Then run with ./run_all.sh (NOT source run_all.sh)
+```
 
-**Or Docker** (see [docs/docker.md](docs/docker.md)):
+#### **Permission Denied (Linux/macOS)**
+```bash
+# Make scripts executable
+chmod +x run_all.sh stop_all.sh setup_scripts.sh
+```
+
+#### **Port Already in Use**
+```bash
+# Check what's using the ports
+netstat -tulpn | grep :500
+
+# Kill processes on specific port (Linux)
+sudo fuser -k 5001/tcp
+
+# Kill processes on specific port (Windows)
+netstat -ano | findstr :5001
+taskkill /PID <process_id> /F
+```
+
+#### **Framework Version Issues**
+```bash
+# Check .NET version
+dotnet --version
+
+# If you see "Framework not found" errors:
+# 1. Ensure you have .NET 10.0+ SDK installed
+# 2. Restore packages after framework update
+dotnet restore BankingMicroservices.slnx
+dotnet build BankingMicroservices.slnx
+```
+
+### **Option 3: Docker Compose (Recommended for Production-like Testing)**
+
+Run all services with a single command:
 
 ```bash
-docker compose up --build
+# Build and start all services
+docker-compose up --build
+
+# Start in background (detached mode)
+docker-compose up -d --build
+
+# View logs from all services
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
 ```
 
-### **Test the Application**
+**Docker Benefits:**
+- ✅ **Isolated environments** - Each service runs in its own container
+- ✅ **Automatic service discovery** - Services communicate via Docker network
+- ✅ **Health checks** - Automatic restart of failed services
+- ✅ **Proper startup ordering** - Dependencies managed via `depends_on`
+- ✅ **Production-like setup** - Same environment as deployment
 
-**Smoke test** via API Gateway:
 
-```bash
-# List customers (should return empty array initially)
-curl -s http://localhost:5000/gateway/customers
-
-# Create a customer
-curl -s -X POST http://localhost:5000/gateway/customers \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jane Doe","email":"jane@bank.com","phone":"555-0100","address":"123 Main St"}'
-
-# Create account for customer (use customer ID from above response)
-curl -s -X POST http://localhost:5000/gateway/accounts \
-  -H "Content-Type: application/json" \
-  -d '{"customerId":"<customer-id-from-above>"}'
-```
 
 ## Swagger API Documentation
 
@@ -89,6 +228,101 @@ Once services are running, access Swagger UI for interactive testing:
 | **Account Management** | http://localhost:5002/swagger | Create accounts, deposits, withdrawals, balance checks |
 | **Service Discovery** | http://localhost:5003/swagger | Service registration, service lookup |
 | **Configuration Service** | http://localhost:5004/swagger | Get configuration for each service |
+
+## Service Discovery Dashboard
+
+Monitor registered microservices in real-time:
+
+| Dashboard Feature | URL (Local) | URL (Docker) | Description |
+|------------------|-------------|--------------|-------------|
+| **Visual Dashboard** | http://localhost:5003/ | http://localhost:5003/ | Live dashboard showing all registered services |
+| **Registry API** | http://localhost:5003/api/registry | http://localhost:5003/api/registry | JSON view of all services with status |
+| **Stats API** | http://localhost:5003/api/stats | http://localhost:5003/api/stats | Service registry statistics and counts |
+| **Health Check** | http://localhost:5003/health | http://localhost:5003/health | Service discovery health status |
+
+**Dashboard Features:**
+- ✅ **Real-time monitoring** - Auto-refreshes every 30 seconds
+- 📊 **Service statistics** - Total, healthy, and stale service counts  
+- 🔗 **Clickable service URLs** - Direct links to registered services
+- ⏱️ **Heartbeat tracking** - Shows last heartbeat timestamps
+- 🚦 **Status indicators** - Visual healthy/stale service status
+
+## Docker Compose Usage
+
+### **Quick Start Commands:**
+
+```bash
+# Start all services (builds images if needed)
+docker-compose up --build
+
+# Start in background
+docker-compose up -d --build
+
+# View logs of specific service
+docker-compose logs -f customer-service
+
+# View logs of all services
+docker-compose logs -f
+
+# Scale a service (run multiple instances)
+docker-compose up --scale customer-service=2
+
+# Stop all services
+docker-compose down
+
+# Rebuild specific service
+docker-compose build customer-service && docker-compose up customer-service
+```
+
+### **Docker Service URLs:**
+
+All services are accessible via the same ports as local development:
+
+| Service | Docker URL | Purpose |
+|---------|------------|---------|
+| **API Gateway** | http://localhost:5010 | Main entry point for all requests |
+| **Customer Service** | http://localhost:5001/swagger | Customer management APIs |
+| **Account Service** | http://localhost:5002/swagger | Account management APIs |
+| **Service Discovery** | http://localhost:5003/ | Service registry dashboard |
+| **Configuration Service** | http://localhost:5004/swagger | Centralized configuration |
+
+## Health Check Endpoints
+
+Monitor individual service health status:
+
+| Service | Health Check URL | Response |
+|---------|------------------|----------|
+| **Service Discovery** | http://localhost:5003/health | `{"status":"UP","service":"service-discovery"}` |
+| **Configuration Service** | http://localhost:5004/health | `{"status":"UP","service":"configuration-service"}` |
+| **Customer Management** | http://localhost:5001/health | `{"status":"UP","service":"customer-management"}` |
+| **Account Management** | http://localhost:5002/health | `{"status":"UP","service":"account-management"}` |
+| **API Gateway** | http://localhost:5010/health | `{"status":"UP","service":"api-gateway"}` |
+
+### **Health Check Testing:**
+```bash
+# Test all health endpoints quickly
+curl -s http://localhost:5003/health | jq .
+curl -s http://localhost:5004/health | jq .
+curl -s http://localhost:5001/health | jq .
+curl -s http://localhost:5002/health | jq .
+curl -s http://localhost:5010/health | jq .
+```
+
+### **Docker Health Monitoring:**
+
+```bash
+# Check status of all services
+docker-compose ps
+
+# Check health of specific service
+docker-compose ps service-discovery
+
+# View resource usage
+docker stats
+
+# Execute commands inside container
+docker-compose exec customer-service bash
+```
 
 ### **Using Swagger for Testing**
 
@@ -142,7 +376,7 @@ POST /api/accounts/deposit
 
 | Service | Port | Role |
 |---------|------|------|
-| API Gateway | 5000 | Public entry — `/gateway/customers`, `/gateway/accounts` |
+| API Gateway | 5010 | Public entry — `/gateway/customers`, `/gateway/accounts` |
 | Customer Management | 5001 | Customer CRUD |
 | Account Management | 5002 | Deposits, withdrawals, balances |
 | Service Discovery | 5003 | Registry (Eureka-like, API only) |
@@ -153,7 +387,7 @@ POST /api/accounts/deposit
 ```
                     +------------------+
                     |   API Gateway    |
-                    |   (YARP) :5000   |
+                    |  (Ocelot) :5010  |
                     +--------+---------+
                              |
               +--------------+---------------+
@@ -197,7 +431,7 @@ BankingMicroservices/
 │   └── Dockerfile.service-discovery
 └── src/
     ├── Shared/                    # DTOs, middleware, Polly, discovery client
-    ├── ApiGateway/                # YARP reverse proxy
+    ├── ApiGateway/                # Ocelot API gateway
     ├── ServiceDiscovery/          # Custom registry
     │   ├── Controllers/           # ServiceDiscoveryController
     │   └── Services/              # IServiceRegistry, ServiceRegistry
@@ -227,7 +461,7 @@ BankingMicroservices/
 
 ### Microservices Architecture
 - **Service Discovery**: Custom registry with heartbeat and stale cleanup (Eureka-like)
-- **API Gateway**: YARP reverse proxy for unified entry point
+- **API Gateway**: Ocelot API gateway for unified entry point
 - **Centralized Configuration**: Per-service config loaded on startup
 - **Inter-service Communication**: HTTP clients with service discovery integration
 
@@ -240,19 +474,34 @@ BankingMicroservices/
 - **Error Handling**: RFC 7807 ProblemDetails for consistent error responses
 
 ### Technical Features
-- **Multi-target**: **net10.0** / **net8.0** (no `global.json` SDK pin)
+- **Framework**: **net10.0** (requires .NET 10.0+ SDK)
 - **Docker Support**: Full containerization with Docker Compose
 - **Type Safety**: Strongly-typed DTOs and API contracts
 - **Async/Await**: Non-blocking operations throughout
 
-## SDK note
+## Framework Requirements
 
-| Installed SDK | Framework used |
-|---------------|----------------|
-| .NET 10.x | `net10.0` (default) |
-| .NET 8.x only | `net8.0` |
+**This project requires .NET 10.0 SDK or later.**
 
-**Framework Selection:** All commands above use `-f net10.0` to specify .NET 10. If you have only .NET 8, use `-f net8.0` instead.
+### **Initial Setup Commands:**
+```bash
+# Navigate to project directory
+cd BankingMicroservices
+
+# Restore NuGet packages for .NET 10.0
+dotnet restore BankingMicroservices.slnx
+
+# Build all projects
+dotnet build BankingMicroservices.slnx
+
+# Verify .NET version
+dotnet --version  # Should show 10.0.x
+```
+
+### **Framework Migration Notes:**
+- All projects updated from `net8.0` to `net10.0`
+- Requires .NET 10.0 runtime in both development and production
+- Docker images automatically include .NET 10.0 runtime
 
 ## Architecture & Design Patterns
 

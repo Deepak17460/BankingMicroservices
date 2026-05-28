@@ -119,7 +119,7 @@ dotnet run --project src/CustomerManagementService/CustomerManagementService.csp
 dotnet run --project src/AccountManagementService/AccountManagementService.csproj
 ```
 
-### Terminal 5 — API Gateway (port 5000)
+### Terminal 5 — API Gateway (port 5010)
 
 ```bash
 dotnet run --project src/ApiGateway/ApiGateway.csproj
@@ -137,13 +137,13 @@ dotnet run -f net10.0 --project src/ApiGateway/ApiGateway.csproj
 
 ### Port summary
 
-| # | Service | URL |
-|---|---------|-----|
-| 1 | Service Discovery | http://localhost:5003 |
-| 2 | Configuration | http://localhost:5004 |
-| 3 | Customer Management | http://localhost:5001 |
-| 4 | Account Management | http://localhost:5002 |
-| 5 | **API Gateway** (use for testing) | **http://localhost:5000** |
+| # | Service | URL | Swagger Docs | Dashboard |
+|---|---------|-----|--------------|-----------|
+| 1 | Service Discovery | http://localhost:5003 | http://localhost:5003/swagger | http://localhost:5003 (Eureka UI) |
+| 2 | Configuration | http://localhost:5004 | http://localhost:5004/swagger | - |
+| 3 | Customer Management | http://localhost:5001 | http://localhost:5001/swagger | - |
+| 4 | Account Management | http://localhost:5002 | http://localhost:5002/swagger | - |
+| 5 | **API Gateway** (use for testing) | **http://localhost:5010** | **http://localhost:5010/swagger** | - |
 
 ---
 
@@ -158,8 +158,11 @@ curl -s http://localhost:5003/discover/customer-management
 # Config
 curl -s http://localhost:5004/config/customer-management
 
-# Customers via gateway
-curl -s http://localhost:5000/gateway/customers
+# Customers via gateway  
+curl -s http://localhost:5010/gateway/customers
+
+# Service Discovery Dashboard (NEW!)
+curl -s http://localhost:5003
 ```
 
 ---
@@ -171,7 +174,7 @@ Replace `<customerId>` and `<accountId>` with GUIDs from responses.
 ### Create customer (auto-creates account, balance 0)
 
 ```bash
-curl -s -X POST http://localhost:5000/gateway/customers \
+curl -s -X POST http://localhost:5010/gateway/customers \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Doe","email":"jane@bank.com","phone":"555-0100","address":"123 Main St"}'
 ```
@@ -181,13 +184,13 @@ Copy `data.id` → **customerId**.
 ### List customers
 
 ```bash
-curl -s http://localhost:5000/gateway/customers
+curl -s http://localhost:5010/gateway/customers
 ```
 
 ### Deposit $500
 
 ```bash
-curl -s -X POST http://localhost:5000/gateway/accounts/deposit \
+curl -s -X POST http://localhost:5010/gateway/accounts/deposit \
   -H "Content-Type: application/json" \
   -d '{"customerId":"<customerId>","amount":500}'
 ```
@@ -197,7 +200,7 @@ Copy `data.id` → **accountId**; check `data.balance` is `500`.
 ### Withdraw $100
 
 ```bash
-curl -s -X POST http://localhost:5000/gateway/accounts/withdraw \
+curl -s -X POST http://localhost:5010/gateway/accounts/withdraw \
   -H "Content-Type: application/json" \
   -d '{"customerId":"<customerId>","amount":100}'
 ```
@@ -207,13 +210,13 @@ Expect `balance`: `400`.
 ### Get account (with customer details)
 
 ```bash
-curl -s http://localhost:5000/gateway/accounts/<accountId>
+curl -s http://localhost:5010/gateway/accounts/<accountId>
 ```
 
 ### Update customer
 
 ```bash
-curl -s -X PUT http://localhost:5000/gateway/customers/<customerId> \
+curl -s -X PUT http://localhost:5010/gateway/customers/<customerId> \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Smith","email":"jane.smith@bank.com","phone":"555-0101","address":"456 Oak Ave"}'
 ```
@@ -221,20 +224,20 @@ curl -s -X PUT http://localhost:5000/gateway/customers/<customerId> \
 ### Delete customer (+ account)
 
 ```bash
-curl -s -X DELETE http://localhost:5000/gateway/customers/<customerId>
+curl -s -X DELETE http://localhost:5010/gateway/customers/<customerId>
 ```
 
 ### Pretty-print JSON (no jq required)
 
 ```bash
-curl -s http://localhost:5000/gateway/customers | python3 -m json.tool
+curl -s http://localhost:5010/gateway/customers | python3 -m json.tool
 ```
 
 ---
 
 ## 7. Test with Postman
 
-**Base URL:** `http://localhost:5000`
+**Base URL:** `http://localhost:5010`
 
 | Action | Method | URL |
 |--------|--------|-----|
@@ -267,7 +270,11 @@ curl -s http://localhost:5000/gateway/customers | python3 -m json.tool
 
 Full API details: [api.md](./api.md)
 
-**Service Discovery (no UI):**
+**Service Discovery (with Dashboard!):**
+
+- **Dashboard:** http://localhost:5003 (Real-time Eureka-style UI)
+- **API:** http://localhost:5003/swagger (Service Discovery API docs)
+- **Registry:** http://localhost:5003/api/registry (JSON service list)
 
 ```text
 GET http://localhost:5003/discover/customer-management
@@ -285,7 +292,7 @@ docker compose up --build
 docker compose down
 ```
 
-Same ports: 5000–5004. Test: `http://localhost:5000/gateway/customers`
+Same ports: 5001–5004, 5010. Test: `http://localhost:5010/gateway/customers`
 
 ---
 
@@ -299,7 +306,7 @@ Same ports: 5000–5004. Test: `http://localhost:5000/gateway/customers`
 | Customer create fails | Ensure ports 5003, 5004, 5001, 5002 are running |
 | Deposit 404 / customer not found | Use valid `customerId` from create/list |
 | Insufficient balance | Deposit before withdraw |
-| Postman cannot connect | Use `http://localhost:5000` (not https); services in WSL |
+| Postman cannot connect | Use `http://localhost:5010` (not https); services in WSL |
 | Slow build on Windows mount (`/mnt/c/...`) | Copy project to `~/BankingMicroservices` in WSL |
 | `jq` not found | Use raw JSON or `python3 -m json.tool` |
 
@@ -312,8 +319,9 @@ Same ports: 5000–5004. Test: `http://localhost:5000/gateway/customers`
 - [ ] Terminal 2: Configuration on 5004  
 - [ ] Terminal 3: Customer on 5001  
 - [ ] Terminal 4: Account on 5002  
-- [ ] Terminal 5: Gateway on 5000  
-- [ ] `GET /gateway/customers` works  
+- [ ] Terminal 5: Gateway on 5010  
+- [ ] `GET /gateway/customers` works
+- [ ] Service Discovery dashboard loads at http://localhost:5003  
 - [ ] Create → Deposit → Withdraw → Get account  
 
 ---

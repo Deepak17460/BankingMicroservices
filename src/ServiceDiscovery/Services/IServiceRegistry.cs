@@ -6,5 +6,6 @@ public interface IServiceRegistry
 {
     void Register(ServiceRegistrationRequest request);
     ServiceRegistrationRequest? Get(string serviceName);
+    IEnumerable<ServiceRegistrationRequest> GetAll();
     int RemoveStaleServices();
 }

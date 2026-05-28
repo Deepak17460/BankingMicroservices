@@ -1,0 +1,739 @@
+{
+	"info": {
+		"_postman_id": "banking-microservices-api",
+		"name": "Banking Microservices API",
+		"description": "Complete API collection for Banking Microservices with .NET Core, Ocelot API Gateway, and Service Discovery.\n\n**Quick Start:**\n1. Import this collection\n2. Import the environment file\n3. Start with 'Create Customer' to get a customer ID\n4. Use the customer ID for account operations\n\n**Services:**\n- API Gateway (Ocelot): Port 5010\n- Service Discovery: Port 5003 (with Dashboard)\n- Customer Management: Port 5001\n- Account Management: Port 5002\n- Configuration Service: Port 5004",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "banking-microservices"
+	},
+	"item": [
+		{
+			"name": "API Gateway (Recommended)",
+			"item": [
+				{
+					"name": "Customer Operations",
+					"item": [
+						{
+							"name": "Create Customer",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    const response = pm.response.json();",
+											"    if (response.success && response.data && response.data.id) {",
+											"        pm.environment.set('customerId', response.data.id);",
+											"        console.log('Customer ID saved:', response.data.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@bankingcorp.com\",\n  \"phone\": \"+1-555-0123\",\n  \"address\": \"123 Banking Street, Finance City, FC 12345\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/gateway/customers",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"customers"
+									]
+								},
+								"description": "Creates a new customer and automatically creates a checking account with balance 0."
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Customers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/gateway/customers",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"customers"
+									]
+								},
+								"description": "Retrieves all registered customers in the system."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Customer by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/gateway/customers/{{customerId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"customers",
+										"{{customerId}}"
+									]
+								},
+								"description": "Retrieves a specific customer by their ID."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Customer",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"John Smith\",\n  \"email\": \"john.smith@bankingcorp.com\",\n  \"phone\": \"+1-555-0124\",\n  \"address\": \"456 Updated Avenue, New City, NC 54321\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/gateway/customers/{{customerId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"customers",
+										"{{customerId}}"
+									]
+								},
+								"description": "Updates an existing customer's information."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Customer",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/gateway/customers/{{customerId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"customers",
+										"{{customerId}}"
+									]
+								},
+								"description": "Deletes a customer and their associated account. This is a cascading delete operation."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Account Operations",
+					"item": [
+						{
+							"name": "Deposit Money",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    const response = pm.response.json();",
+											"    if (response.success && response.data && response.data.id) {",
+											"        pm.environment.set('accountId', response.data.id);",
+											"        console.log('Account ID saved:', response.data.id);",
+											"        console.log('New balance:', response.data.balance);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 1000.00\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/gateway/accounts/deposit",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"accounts",
+										"deposit"
+									]
+								},
+								"description": "Deposits money into a customer's account. Validates customer existence before processing."
+							},
+							"response": []
+						},
+						{
+							"name": "Withdraw Money",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 250.00\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/gateway/accounts/withdraw",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"accounts",
+										"withdraw"
+									]
+								},
+								"description": "Withdraws money from a customer's account. Validates sufficient balance before processing."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Account Details",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/gateway/accounts/{{accountId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"accounts",
+										"{{accountId}}"
+									]
+								},
+								"description": "Retrieves account details including customer information."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Account (Manual)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customerId\": \"{{customerId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/gateway/accounts",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"gateway",
+										"accounts"
+									]
+								},
+								"description": "Manually creates an account for a customer. Usually done automatically when creating a customer."
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "All banking operations through the API Gateway (Ocelot). This is the recommended way to access the microservices."
+		},
+		{
+			"name": "Service Discovery & Infrastructure",
+			"item": [
+				{
+					"name": "Service Discovery Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							]
+						},
+						"description": "Opens the real-time Eureka-style service discovery dashboard showing all registered services."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Registry (JSON)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/api/registry",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"api",
+								"registry"
+							]
+						},
+						"description": "Returns JSON list of all registered services with their status and URLs."
+					},
+					"response": []
+				},
+				{
+					"name": "Discover Customer Service",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/discover/customer-management",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"discover",
+								"customer-management"
+							]
+						},
+						"description": "Discovers the Customer Management service URL."
+					},
+					"response": []
+				},
+				{
+					"name": "Discover Account Service",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/discover/account-management",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"discover",
+								"account-management"
+							]
+						},
+						"description": "Discovers the Account Management service URL."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/api/stats",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"api",
+								"stats"
+							]
+						},
+						"description": "Returns statistics about registered services (count, health status, etc.)."
+					},
+					"response": []
+				}
+			],
+			"description": "Service Discovery endpoints for monitoring and managing the microservices registry."
+		},
+		{
+			"name": "Configuration Service",
+			"item": [
+				{
+					"name": "Get Customer Service Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{configurationUrl}}/config/customer-management",
+							"host": [
+								"{{configurationUrl}}"
+							],
+							"path": [
+								"config",
+								"customer-management"
+							]
+						},
+						"description": "Gets configuration settings for the Customer Management service."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Account Service Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{configurationUrl}}/config/account-management",
+							"host": [
+								"{{configurationUrl}}"
+							],
+							"path": [
+								"config",
+								"account-management"
+							]
+						},
+						"description": "Gets configuration settings for the Account Management service."
+					},
+					"response": []
+				},
+				{
+					"name": "Get API Gateway Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{configurationUrl}}/config/api-gateway",
+							"host": [
+								"{{configurationUrl}}"
+							],
+							"path": [
+								"config",
+								"api-gateway"
+							]
+						},
+						"description": "Gets configuration settings for the API Gateway service."
+					},
+					"response": []
+				}
+			],
+			"description": "Centralized configuration service endpoints."
+		},
+		{
+			"name": "Direct Service Access (Advanced)",
+			"item": [
+				{
+					"name": "Customer Service Direct",
+					"item": [
+						{
+							"name": "Direct - Create Customer",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Jane Direct\",\n  \"email\": \"jane.direct@bank.com\",\n  \"phone\": \"+1-555-9999\",\n  \"address\": \"789 Direct Street, Service City, SC 99999\"\n}"
+								},
+								"url": {
+									"raw": "{{customerServiceUrl}}/api/customers",
+									"host": [
+										"{{customerServiceUrl}}"
+									],
+									"path": [
+										"api",
+										"customers"
+									]
+								},
+								"description": "Direct access to Customer Service (bypassing API Gateway)."
+							},
+							"response": []
+						},
+						{
+							"name": "Direct - Get All Customers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{customerServiceUrl}}/api/customers",
+									"host": [
+										"{{customerServiceUrl}}"
+									],
+									"path": [
+										"api",
+										"customers"
+									]
+								},
+								"description": "Direct access to get all customers."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Account Service Direct",
+					"item": [
+						{
+							"name": "Direct - Deposit",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"amount\": 500.00\n}"
+								},
+								"url": {
+									"raw": "{{accountServiceUrl}}/api/accounts/deposit",
+									"host": [
+										"{{accountServiceUrl}}"
+									],
+									"path": [
+										"api",
+										"accounts",
+										"deposit"
+									]
+								},
+								"description": "Direct access to Account Service deposit (bypassing API Gateway)."
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "Direct access to individual microservices. Use API Gateway instead for production scenarios."
+		},
+		{
+			"name": "Health & Monitoring",
+			"item": [
+				{
+					"name": "API Gateway Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Health check endpoint for API Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "Service Discovery Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/health",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Health check endpoint for Service Discovery."
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Service Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{customerServiceUrl}}/health",
+							"host": [
+								"{{customerServiceUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Health check endpoint for Customer Service."
+					},
+					"response": []
+				}
+			],
+			"description": "Health monitoring endpoints for all services."
+		},
+		{
+			"name": "Swagger Documentation",
+			"item": [
+				{
+					"name": "API Gateway Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/swagger",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"swagger"
+							]
+						},
+						"description": "Opens Swagger UI for API Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "Customer Service Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{customerServiceUrl}}/swagger",
+							"host": [
+								"{{customerServiceUrl}}"
+							],
+							"path": [
+								"swagger"
+							]
+						},
+						"description": "Opens Swagger UI for Customer Service."
+					},
+					"response": []
+				},
+				{
+					"name": "Account Service Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{accountServiceUrl}}/swagger",
+							"host": [
+								"{{accountServiceUrl}}"
+							],
+							"path": [
+								"swagger"
+							]
+						},
+						"description": "Opens Swagger UI for Account Service."
+					},
+					"response": []
+				},
+				{
+					"name": "Service Discovery Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceDiscoveryUrl}}/swagger",
+							"host": [
+								"{{serviceDiscoveryUrl}}"
+							],
+							"path": [
+								"swagger"
+							]
+						},
+						"description": "Opens Swagger UI for Service Discovery."
+					},
+					"response": []
+				},
+				{
+					"name": "Configuration Service Swagger",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{configurationUrl}}/swagger",
+							"host": [
+								"{{configurationUrl}}"
+							],
+							"path": [
+								"swagger"
+							]
+						},
+						"description": "Opens Swagger UI for Configuration Service."
+					},
+					"response": []
+				}
+			],
+			"description": "Swagger documentation endpoints for all services."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5010",
+			"type": "string"
+		},
+		{
+			"key": "serviceDiscoveryUrl",
+			"value": "http://localhost:5003",
+			"type": "string"
+		},
+		{
+			"key": "configurationUrl",
+			"value": "http://localhost:5004",
+			"type": "string"
+		},
+		{
+			"key": "customerServiceUrl",
+			"value": "http://localhost:5001",
+			"type": "string"
+		},
+		{
+			"key": "accountServiceUrl",
+			"value": "http://localhost:5002",
+			"type": "string"
+		}
+	]
+}
